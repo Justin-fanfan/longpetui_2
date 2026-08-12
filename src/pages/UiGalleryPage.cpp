@@ -2,6 +2,7 @@
 
 #include "widgets/PetFaceWidget.h"
 #include "widgets/VisualComponents.h"
+#include "widgets/VisualTokens.h"
 
 #include <QButtonGroup>
 #include <QFrame>
@@ -27,6 +28,7 @@ public:
         layout->setContentsMargins(6, 8, 6, 10);
         layout->setSpacing(2);
         m_face->setCompact(true);
+        m_face->setBackgroundColor(LongPetUi::Colors::Surface);
         m_face->setAnimationEnabled(false);
         m_face->setAttribute(Qt::WA_TransparentForMouseEvents, true);
         layout->addWidget(m_face, 1);
@@ -37,10 +39,12 @@ public:
         layout->addWidget(label);
     }
 
-    void setSelected(bool selected)
+    void setSelected(bool selected, bool animate = true)
     {
         setProperty("selected", selected);
-        m_face->setAnimationEnabled(selected);
+        m_face->setBackgroundColor(selected
+            ? LongPetUi::Colors::SurfaceSecondary : LongPetUi::Colors::Surface);
+        m_face->setAnimationEnabled(selected && animate);
         style()->unpolish(this);
         style()->polish(this);
         update();
@@ -131,7 +135,7 @@ QWidget* UiGalleryPage::createFacesPage()
                 candidate->setSelected(candidate == tile);
         });
     }
-    tiles.first()->setSelected(true);
+    tiles.first()->setSelected(true, false);
     return page;
 }
 

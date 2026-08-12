@@ -13,7 +13,9 @@ CompanionPage::CompanionPage(QWidget* parent)
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
-    root->addWidget(new PetFaceWidget(PetExpression::Speaking, this));
+    auto* face = new PetFaceWidget(PetExpression::Speaking, this);
+    // face->setAnimationEnabled(false);
+    root->addWidget(face);
 
     m_revealButton = new QPushButton(this);
     m_revealButton->setProperty("role", "companionReveal");
