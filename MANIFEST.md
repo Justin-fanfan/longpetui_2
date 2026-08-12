@@ -31,6 +31,33 @@
 - [connectivity/](01-device/connectivity/README.md)
 - [features/](01-device/features/README.md)
 
+## 运动模块重点文档
+
+本轮加入并联动审查了“小车由 MCU 直接控制、龙芯间接控制、后续视觉自动跟随”的架构：
+
+- [MotionModels](01-device/model/MotionModels.md)
+- [MotionService](01-device/services/MotionService.md)
+- [AutoFollowController](01-device/features/AutoFollowController.md)
+- [运动 MCU 边界](01-device/platform/MotionMcuBoundary.md)
+- [视觉自动跟随 → 小车运动](03-flows/AutoFollowMotionFlow.md)
+- [运动安全与控制权](04-runtime/MotionSafetyAndControl.md)
+
+同时同步修订了：
+
+- [AppController](01-device/app/AppController.md)
+- [PetStateMachine](01-device/app/PetStateMachine.md)
+- [PetBehaviorController](01-device/app/PetBehaviorController.md)
+- [PerceptionService](01-device/services/PerceptionService.md)
+- [RobotService](01-device/services/RobotService.md)
+- [UartRobotDriver](01-device/platform/UartRobotDriver.md)
+- [Emergency Flow](03-flows/EmergencyFlow.md)
+- [性能与推理调度](04-runtime/PerformanceAndInferenceScheduling.md)
+- [降级与故障恢复](04-runtime/DegradationAndRecovery.md)
+- [安全与隐私](04-runtime/SecurityAndPrivacy.md)
+- [测试策略](05-build/TestingStrategy.md)
+- [版本路线](06-roadmap/VersionRoadmap.md)
+- [迁移检查清单](06-roadmap/MigrationChecklist.md)
+
 ## Markdown 导航约束
 
 真正需要点击的相对链接必须写在普通 Markdown 内容中，例如：
@@ -41,4 +68,4 @@
 
 不要把“要点击的链接”放在 fenced code block 中。代码块中的 `[text](path)` 只会显示成纯文本，不会被 GitHub 或 VS Code Markdown Preview 渲染成超链接。
 
-根 README 的长期目录已经改为嵌套 Markdown 列表，因此目录层级仍然清楚，同时每一项都可点击。
+根 README 的长期目录使用嵌套 Markdown 列表，因此目录层级清楚，同时每一项都可点击。
