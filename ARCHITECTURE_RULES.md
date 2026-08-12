@@ -7,7 +7,7 @@
 Remote AI Server 和 Family App 都是可选连接。断开时本体保留：
 
 ```text
-UI / KWS / Reminder / SQLite / basic Vision / Robot / local features
+UI / KWS / Reminder / SQLite / basic Vision / Robot / Motion basic control / local features
 ```
 
 ## A2. UI 不直接访问能力实现
@@ -28,7 +28,7 @@ AudioService 统一持有 capture pipeline，并分别分发给 KWS 和 active r
 
 ## A5. PetStateMachine 只管理产品高层状态
 
-推荐 `InteractionState + AttentionState`。Network、Bluetooth、HumanPresent 等是上下文，不制造组合状态。
+推荐 `InteractionState + AttentionState`。Network、Bluetooth、HumanPresent、AutoFollow 等是正交上下文/子系统状态，不制造组合状态。
 
 ## A6. Remote AI 有 capability handshake
 
@@ -62,12 +62,69 @@ Repository、Service 等如果只有一个实现，不需要机械制造 `Ixxx +
 
 ## A13. 所有外部会话都可取消和超时
 
-Remote speech、Family command、Robot motion 都不能形成无法中断的长操作。
+Remote speech、Family command、Robot action、Motion command 都不能形成无法中断的长操作。
 
-## A14. 安全优先级最高
+## A14. Emergency 安全优先级最高
 
 Emergency 可以抢占普通 Conversation/Feature；通用 LLM 输出不能作为安全关键动作的唯一判据。
+
+如果底盘正在移动，Emergency 处理链必须优先请求 `MotionService` 停车，不等待远端 AI、数据库、UI 动画或普通 Robot action 完成。
 
 ## A15. 日志可关联但不默认保存隐私原始数据
 
 Remote speech 使用 sessionId 关联日志；默认不记录 raw audio/camera/secret。
+
+## A16. 运动控制采用“龙芯高层决策 + MCU 直接执行”
+
+小车底盘由单片机直接控制，龙芯板只下发高层、受限的运动目标。
+
+```text
+Perception / Feature
+      ↓
+MotionIntent
+      ↓
+MotionService
+      ↓
+MCU protocol driver
+      ↓
+Motion MCU
+      ↓
+Motor Driver
+```
+
+视觉模型、Page、Family App、Remote AI 都不能直接发送 PWM/电机字节。
+
+## A17. 底盘必须有双层停止保护
+
+龙芯侧 `MotionService` 负责：
+
+```text
+owner / enable / speed limit / stale command / emergency stop
+```
+
+MCU 侧必须独立负责：
+
+```text
+watchdog / heartbeat timeout / reset-safe / motor fault stop
+```
+
+Linux 进程崩溃或通信中断时，MCU 仍应能够自行停车。
+
+## A18. 自动跟随不是“视觉框直接驱动电机”
+
+自动跟随必须经过：
+
+```text
+PerceptionService
+→ AutoFollowController
+→ MotionService
+→ MCU
+```
+
+要求 target confirmation、dead zone、限速、目标丢失停车和控制权仲裁。基础人体检测不能被描述为完整自主导航或完整避障系统。
+
+## A19. 家属端默认没有实时驾驶权限
+
+Family App 默认只用于查看、Reminder 和允许的设置。
+
+如果未来加入远程驾驶，应作为独立高风险功能设计，不复用普通 `settings.update` 或任意 command 通道。
