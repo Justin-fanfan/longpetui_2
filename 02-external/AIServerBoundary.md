@@ -11,6 +11,8 @@
 - 更强文本/语言推理；
 - 后续可选高级 AI 能力。
 
+它不是宠物底盘的实时控制器。
+
 ## 2. 宠物侧抽象
 
 宠物侧统一使用：
@@ -82,7 +84,40 @@ chunk size
 
 而不是把 LAN 参数写死到 Bluetooth。
 
-## 7. 会话取消
+## 7. 与实体运动的边界
+
+Remote AI 可以产生：
+
+```text
+文本回复
+语义意图建议
+高层功能建议
+```
+
+但默认不能产生“直接执行的底盘命令”。
+
+禁止：
+
+```text
+AI Server
+→ UART / PWM / wheel command
+```
+
+如果未来远端模型识别出类似“去找老人”“跟随用户”的高层意图，也必须经过宠物本地验证：
+
+```text
+Remote result
+→ AppController / local validated feature
+→ AutoFollowController or other local controller
+→ MotionService
+→ Motion MCU
+```
+
+本地 `MotionService`、MCU watchdog 和安全限制始终拥有最终约束权。
+
+高网络延迟/断线也意味着远端 Server 不适合做实时电机闭环。
+
+## 8. 会话取消
 
 以下场景必须可以取消 Remote Session：
 
@@ -95,7 +130,7 @@ chunk size
 
 Server 迟到的旧 session 数据必须通过 `sessionId` 丢弃。
 
-## 8. 断线降级
+## 9. 断线降级
 
 ```text
 AI Server unavailable
@@ -103,12 +138,16 @@ AI Server unavailable
 ├── Reminder/Care继续
 ├── 本地视觉继续
 ├── Robot/UI继续
+├── Motion/MCU 基础能力继续
+├── AutoFollow（若完全本地实现）可继续，受本地安全策略约束
 ├── 本地小模型（若启用）可有限降级
 └── 规则/模板创意功能继续
 ```
 
 不能出现“AI Server 断开 → 宠物整机不可用”。
 
-## 9. 数据与隐私
+## 10. 数据与隐私
 
 默认只在明确的 speech session 内上传所需音频。服务器是否落盘保存音频必须是明确配置，不能由协议实现默认为永久保存。
+
+基础人体/手势/AutoFollow 视觉默认本地处理；未来若上传视觉数据，也需要单独的数据最小化与权限设计。
