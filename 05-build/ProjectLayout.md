@@ -22,20 +22,43 @@ LongPet/
 │   │   ├── pages/
 │   │   └── widgets/
 │   ├── model/
+│   │   └── MotionModels.*
 │   ├── services/
+│   │   ├── MotionService.*
+│   │   └── ...
 │   ├── data/
 │   ├── platform/
 │   │   ├── audio/
 │   │   ├── camera/
 │   │   ├── inference/
-│   │   └── robot/
+│   │   ├── robot/
+│   │   └── motion/       # MCU protocol / chassis adapter，实际规模够大后再单独建
 │   ├── connectivity/
 │   └── features/
+│       ├── CreativeFeatureCoordinator.*
+│       └── AutoFollowController.*
 ├── resources/
 ├── config/
 ├── tools/
 └── docs/
 ```
+
+## 运动代码的建议落点
+
+逻辑职责比“物理上是不是同一个 MCU”更重要：
+
+```text
+services/MotionService
+→ 底盘业务安全、owner、限速
+
+features/AutoFollowController
+→ 视觉观测到 MotionIntent
+
+platform/robot or platform/motion
+→ MCU/UART 协议
+```
+
+如果第一版只有一个 `UartRobotDriver.*`，不必立刻建立 `platform/motion/` 目录；等底盘协议代码明显增多再拆。
 
 ## V0.1 实际目录
 
@@ -79,11 +102,14 @@ connectivity/
 features/
 ```
 
+运动底盘建议先建立 `MotionService + 当前实际 MCU Driver`，自动跟随后再加入 `AutoFollowController`。
+
 ## 命名
 
 - Page：`XxxPage`；
 - Service：`XxxService`；
-- 硬件/库 Adapter：具体实现名，如 `AlsaAudioInput`、`OrtVisionEngine`；
+- 高层控制器：`XxxController`，如 `AutoFollowController`；
+- 硬件/库 Adapter：具体实现名，如 `AlsaAudioInput`、`OrtVisionEngine`、`UartRobotDriver`；
 - 数据访问：`XxxRepository`；
 - DTO/Model：业务名，不加 Manager。
 
