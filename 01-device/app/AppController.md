@@ -42,7 +42,7 @@ connectionLost
 
 ## 3. 主要职责
 
-- 将事件转换为 PetStateMachine event；
+- 将事件转换为 `PetStateMachine` event；
 - 根据当前状态启动/停止 Service；
 - 决定页面显示；
 - 处理 Remote AI 不可用时的降级；
@@ -71,10 +71,12 @@ KeywordSpottingService::keywordDetected
         ↓
 AppController
         ↓
-PetStateMachine::dispatch(WakeKeyword)
+PetStateMachine::dispatch(WakeKeywordDetected)
         ↓
 VoiceInteractionService::start()
 ```
+
+这里的 `WakeKeywordDetected` 与 `PetStateMachine` 文档中的事件命名保持一致。实际代码中建议把事件定义集中在状态机头文件，而不是多个模块各写一套字符串名称。
 
 ## 6. 示例：远端服务器断开
 
