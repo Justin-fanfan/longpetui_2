@@ -34,8 +34,37 @@ Service → Connectivity client
 Service ↔ Model/DTO
 Repository ↔ Model/DTO
 Connectivity ↔ protocol DTO
-PetBehaviorController → RobotService / UI presentation API
+PetBehaviorController → RobotService / MotionService / UI presentation API
+PerceptionService → emit PersonObservation
+AutoFollowController → MotionService
+MotionService → MCU protocol driver
 ```
+
+## 小车底盘专用链路
+
+```text
+CameraCapture
+   ↓
+PerceptionService
+   ↓ PersonObservation
+AutoFollowController
+   ↓ MotionIntent
+MotionService
+   ↓ safety / ownership / speed limit
+UartRobotDriver / MCU protocol adapter
+   ↓
+Motion MCU
+   ↓ realtime motor control
+Chassis
+```
+
+每一层只承担一个职责：
+
+- `PerceptionService`：看到了什么；
+- `AutoFollowController`：希望怎样移动；
+- `MotionService`：现在是否允许这样移动；
+- Driver：怎样把受限命令可靠送到 MCU；
+- MCU：怎样实时驱动电机，并在失联/异常时停车。
 
 ## 禁止
 
@@ -43,10 +72,14 @@ PetBehaviorController → RobotService / UI presentation API
 HomePage → sherpa
 CarePage → SQLite
 Vision/PerceptionService → MainWindow::showEmergency()
+PerceptionService → UartRobotDriver / PWM
+AutoFollowController → UART bytes / PWM
 AiServerClient → PetFaceWidget
 UartRobotDriver → PetStateMachine
 Electron → SQLite raw table
+Electron → motor/PWM command
 Remote AI Server → QWidget
+Remote AI Server → direct chassis control
 Model/DTO → Service/QWidget/DatabaseManager
 ```
 
@@ -58,7 +91,9 @@ Model/DTO → Service/QWidget/DatabaseManager
 - AI Server 协议变化不影响页面；
 - SQLite schema 改动不影响 Electron UI；
 - 本地模型从 Python 换 C++ 时 Service API 可以不变；
-- Robot Driver 换协议不影响 PetBehaviorController；
+- MCU/Robot Driver 换协议不影响 AutoFollowController；
+- 自动跟随误检不会直接越过 MotionService 安全门；
+- Linux 进程故障时 MCU watchdog 仍能停车；
 - 断网时 AppController 可以统一执行降级；
 - Model 保持轻量后，跨线程和单元测试更简单。
 
