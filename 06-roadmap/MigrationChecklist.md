@@ -35,8 +35,40 @@
 - [ ] latest-frame；
 - [ ] 低 inference FPS；
 - [ ] gesture debounce；
+- [ ] PersonObservation 带 timestamp/confidence；
 - [ ] 不把每帧写 DB；
-- [ ] active voice 时测试 CPU。
+- [ ] active voice 时测试 CPU；
+- [ ] PerceptionService 不直接操作 UART/电机。
+
+## 引入运动底盘 / MCU
+
+- [ ] 明确龙芯高层控制、MCU 直接控制的边界；
+- [ ] MotionService；
+- [ ] MotionModels；
+- [ ] Driver/MCU protocol version；
+- [ ] Stop/Emergency Stop；
+- [ ] command/heartbeat lease；
+- [ ] MCU watchdog；
+- [ ] MCU reset-safe；
+- [ ] speed limit；
+- [ ] Motion owner arbitration；
+- [ ] telemetry/fault 回传；
+- [ ] 龙芯进程退出后 MCU 自动停车；
+- [ ] 通信断开后 MCU 自动停车；
+- [ ] Sleep/Emergency 时禁止运动。
+
+## 引入 AutoFollow
+
+- [ ] AutoFollowController，不让视觉模型直接发运动命令；
+- [ ] target acquire/lock；
+- [ ] confidence threshold；
+- [ ] dead zone / hysteresis；
+- [ ] low-speed cap；
+- [ ] stale observation stop；
+- [ ] target lost stop；
+- [ ] Manual/Emergency 抢占；
+- [ ] 多人场景目标稳定性；
+- [ ] 无可靠避障时只在受控低速场景开发/演示。
 
 ## 引入 Family App
 
@@ -44,7 +76,8 @@
 - [ ] command whitelist；
 - [ ] DTO 而不是 raw DB；
 - [ ] Reminder revision；
-- [ ] 禁止 raw camera/mic 默认远程访问。
+- [ ] 禁止 raw camera/mic 默认远程访问；
+- [ ] 默认不授予实时底盘驾驶/PWM 权限。
 
 ## 发布前
 
@@ -52,8 +85,12 @@
 - [ ] UI CPU 基线未退化；
 - [ ] RSS 长稳；
 - [ ] AI Server 故障降级；
-- [ ] Camera/Robot 故障降级；
+- [ ] Camera/Robot/Motion 故障降级；
+- [ ] AutoFollow target-loss 验证；
+- [ ] Emergency 运动抢占验证；
+- [ ] MCU heartbeat/watchdog 长稳；
 - [ ] SQLite 恢复；
 - [ ] 日志轮转；
 - [ ] 密钥不在仓库；
-- [ ] 长时间运行验收。
+- [ ] 长时间运行验收；
+- [ ] 程序退出/崩溃后底盘必停。
