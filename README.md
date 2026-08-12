@@ -1,69 +1,254 @@
-# LongPet UI Demo
+# LongPet 宠物端整体软件架构
 
-> **THIS PROJECT IS A UI-ONLY PROTOTYPE.**  
-> **NO BUSINESS LOGIC IS IMPLEMENTED.**
+> 面向龙芯 2K0300 宠物终端的长期架构说明。  
+> 本文档树以“宠物本体软件”为中心，同时定义与外部龙芯 AI 推理服务器、家属 Electron 应用的边界。  
+> 当前阶段：V0.1 UI 正式工程准备期。
 
-LongPet UI Demo 是一个独立的 Qt 6 Widgets 视觉原型，用于展示面向老年人的 7 英寸横屏机器宠物界面。它只包含本地页面跳转、视觉状态、Demo slider 和固定假数据。
+---
 
-## 运行要求
+## 1. 项目整体情况
 
-- Windows 10/11 开发预览环境
-- Qt 6.5 或更高版本，包含 Core、Gui、Widgets、Svg
-- CMake 3.21 或更高版本
-- Ninja + MinGW、MSVC 或其他与 Qt 安装匹配的工具链
-- 窗口 client area 固定为 1024×600
+LongPet 是一个以龙芯 2K0300 为本体计算平台的适老陪伴机器宠物。
 
-## 构建
+宠物本体需要逐步具备：
 
-常规方式：
+- Qt 6 Widgets UI 与触摸；
+- 宠物表情和低 CPU 动画；
+- 基础人体识别；
+- 基础手势识别；
+- SQLite 本地数据；
+- 本地语音关键词/唤醒词识别；
+- 可选几十 MB 级本地小语言模型；
+- 宠物高层状态机；
+- Reminder、Care、本地互动等创意功能；
+- 实体宠物动作/外设控制；
+- Network/Bluetooth 通信。
 
-```powershell
-cmake -S . -B build
-cmake --build build
+系统另有两个外部节点：
+
+### 龙芯高性能 AI 推理服务器
+
+宠物通过网络或蓝牙连接后，可将会话音频发送给服务器，由服务器提供更高质量的 ASR、语言推理和 TTS，并返回识别文本、回复文本、生成音频等。
+
+### 家属 Electron 应用
+
+通过网络与宠物通信，用于查看经过授权的宠物/Care/Reminder/设备状态，并下发 Reminder 和允许的设置。
+
+因此整个系统的定位是：
+
+> **本地自治优先，远端 AI 增强，家属端安全管理。**
+
+---
+
+## 2. 总体架构原则
+
+宠物本体内部依赖方向：
+
+```text
+UI
+ ↓
+Application / PetStateMachine
+ ↓
+Domain Services
+ ↓
+Data / Platform / Connectivity
+ ↓
+Linux / Hardware / Third-party Libraries
 ```
 
-本机 Qt 不在默认搜索路径时，可指定 Qt：
+系统级原则：
 
-```powershell
-cmake -S . -B build -G Ninja `
-  -DCMAKE_PREFIX_PATH=D:/Qt/6.11.0/mingw_64 `
-  -DCMAKE_MAKE_PROGRAM=D:/Qt/Tools/Ninja/ninja.exe `
-  -DCMAKE_CXX_COMPILER=D:/Qt/Tools/mingw1310_64/bin/g++.exe
-cmake --build build
+1. AI Server 断开后，宠物仍保留 UI、KWS、Reminder、SQLite、基础视觉、Robot 和本地创意功能；
+2. 家属端不直接访问 SQLite，不直接控制 UART/GPIO；
+3. 本地 KWS 是常态语音入口，完整 ASR/TTS 优先由远端 AI Server 按会话提供；
+4. 可选本地小语言模型只做离线增强，不成为基础依赖；
+5. 状态机管理用户可感知的高层交互状态，不把网络/人体存在等上下文组合成状态爆炸；
+6. Qt UI 不执行重推理；
+7. 2K0300 单核环境下，本地重推理必须按优先级调度；
+8. Transport、模型、数据库和硬件实现均隔离在稳定边界之后。
+
+详细规则见 [架构决策与约束](ARCHITECTURE_RULES.md)。
+
+---
+
+## 3. 系统上下文
+
+```text
+                         ┌──────────────────────────┐
+                         │ 龙芯高性能 AI Server      │
+                         │ ASR / TTS / LLM / AI     │
+                         └────────────┬─────────────┘
+                                      │ Network / Bluetooth
+                                      │
+┌─────────────────────────────────────▼──────────────────────────────────────┐
+│                           LongPet 宠物本体                                 │
+│                                                                            │
+│ UI → App/StateMachine → Services → Data/Platform/Connectivity             │
+│                                                                            │
+│ Local: KWS / Vision / Gesture / SQLite / Robot / Optional small LLM       │
+└─────────────────────────────────────┬──────────────────────────────────────┘
+                                      │ Network
+                                      │
+                         ┌────────────▼─────────────┐
+                         │ 家属 Electron 应用        │
+                         │ 查看 / Reminder / 设置    │
+                         └──────────────────────────┘
 ```
 
-## 页面
+---
 
-- Home
-- Listening
-- Thinking
-- Speaking
-- Care / 今日关怀
-- Reminder / 提醒列表
-- Reminder Edit / 提醒编辑
-- Settings
-- Emergency
-- Sleep
-- Engineering Demo
-- UI Gallery
+## 4. 可点击的长期源码 / 模块目录
 
-从 Home 可浏览老人侧主要流程。开发展示快捷键：`F1` Home、`F2` Listening、`F3` Thinking、`F4` Speaking、`F5` Care、`F6` Reminder、`F7` Reminder Edit、`F8` Settings、`F9` Sleep、`F10` Emergency、`F11` Engineering、`F12` UI Gallery。
+> 这是**长期目标目录**，不是要求 V0.1 一次性创建全部文件。  
+> 点击目录或类名即可进入职责、依赖、线程、数据流、版本建议等详细说明。
 
-## UI Gallery
+```text
+LongPet/
+├── [src / 宠物本体](01-device/README.md)
+│   ├── [模块依赖规则](01-device/ModuleDependencies.md)
+│   │
+│   ├── [app/](01-device/app/README.md)
+│   │   ├── [Application / main.cpp](01-device/app/Application.md)
+│   │   ├── [AppController](01-device/app/AppController.md)
+│   │   ├── [AppState](01-device/app/AppState.md)
+│   │   ├── [PetStateMachine](01-device/app/PetStateMachine.md)
+│   │   ├── [PetBehaviorController](01-device/app/PetBehaviorController.md)
+│   │   └── [AiCapabilityPolicy](01-device/app/AiCapabilityPolicy.md)
+│   │
+│   ├── [ui/](01-device/ui/README.md)
+│   │   ├── [MainWindow](01-device/ui/MainWindow.md)
+│   │   ├── [longpetui_2 → 正式工程迁移](01-device/ui/UIPrototypeMigration.md)
+│   │   ├── [pages/](01-device/ui/pages/README.md)
+│   │   │   ├── [CompanionPage](01-device/ui/pages/CompanionPage.md)
+│   │   │   ├── [HomePage](01-device/ui/pages/HomePage.md)
+│   │   │   ├── [ConversationPage](01-device/ui/pages/ConversationPage.md)
+│   │   │   ├── [CarePage](01-device/ui/pages/CarePage.md)
+│   │   │   ├── [ReminderPage](01-device/ui/pages/ReminderPage.md)
+│   │   │   ├── [ReminderEditPage](01-device/ui/pages/ReminderEditPage.md)
+│   │   │   ├── [SettingsPage](01-device/ui/pages/SettingsPage.md)
+│   │   │   ├── [EmergencyPage](01-device/ui/pages/EmergencyPage.md)
+│   │   │   └── [SleepPage](01-device/ui/pages/SleepPage.md)
+│   │   └── [widgets/](01-device/ui/widgets/README.md)
+│   │       ├── [PetFaceWidget](01-device/ui/widgets/PetFaceWidget.md)
+│   │       ├── [VisualComponents](01-device/ui/widgets/VisualComponents.md)
+│   │       ├── [VisualTokens](01-device/ui/widgets/VisualTokens.md)
+│   │       └── [QSS / Resources](01-device/ui/widgets/QSSAndResources.md)
+│   │
+│   ├── [model/](01-device/model/README.md)
+│   │   ├── [Reminder / Care Models](01-device/model/ReminderModels.md)
+│   │   ├── [Perception Models](01-device/model/PerceptionModels.md)
+│   │   ├── [Speech / AI Models](01-device/model/SpeechModels.md)
+│   │   └── [Device / Family DTO](01-device/model/DeviceAndFamilyModels.md)
+│   │
+│   ├── [services/](01-device/services/README.md)
+│   │   ├── [AudioService](01-device/services/AudioService.md)
+│   │   ├── [KeywordSpottingService](01-device/services/KeywordSpottingService.md)
+│   │   ├── [VoiceInteractionService](01-device/services/VoiceInteractionService.md)
+│   │   ├── [PerceptionService](01-device/services/PerceptionService.md)
+│   │   ├── [LocalLanguageService](01-device/services/LocalLanguageService.md)
+│   │   ├── [ReminderService](01-device/services/ReminderService.md)
+│   │   ├── [CareService](01-device/services/CareService.md)
+│   │   ├── [RobotService](01-device/services/RobotService.md)
+│   │   ├── [RemoteAiService](01-device/services/RemoteAiService.md)
+│   │   ├── [FamilyLinkService](01-device/services/FamilyLinkService.md)
+│   │   ├── [ConnectivityManager](01-device/services/ConnectivityManager.md)
+│   │   ├── [SettingsService](01-device/services/SettingsService.md)
+│   │   └── [SystemService](01-device/services/SystemService.md)
+│   │
+│   ├── [data/](01-device/data/README.md)
+│   │   ├── [DatabaseManager](01-device/data/DatabaseManager.md)
+│   │   ├── [Repositories](01-device/data/Repositories.md)
+│   │   ├── [SQLite Schema](01-device/data/SQLiteSchema.md)
+│   │   └── [持久化规则](01-device/data/PersistenceRules.md)
+│   │
+│   ├── [platform/](01-device/platform/README.md)
+│   │   ├── [AlsaAudioDevice](01-device/platform/AlsaAudioDevice.md)
+│   │   ├── [CameraCapture](01-device/platform/CameraCapture.md)
+│   │   ├── [LocalInference / ORT / sherpa](01-device/platform/LocalInference.md)
+│   │   ├── [UartRobotDriver](01-device/platform/UartRobotDriver.md)
+│   │   └── [可选 Python AI Worker](01-device/platform/PythonWorkerOption.md)
+│   │
+│   ├── [connectivity/](01-device/connectivity/README.md)
+│   │   ├── [ITransport](01-device/connectivity/ITransport.md)
+│   │   ├── [NetworkTransport](01-device/connectivity/NetworkTransport.md)
+│   │   ├── [BluetoothTransport](01-device/connectivity/BluetoothTransport.md)
+│   │   ├── [AiServerClient](01-device/connectivity/AiServerClient.md)
+│   │   ├── [FamilyGateway](01-device/connectivity/FamilyGateway.md)
+│   │   └── [通信协议 / 消息模型](01-device/connectivity/Protocol.md)
+│   │
+│   └── [features/](01-device/features/README.md)
+│       ├── [CreativeFeatureCoordinator](01-device/features/CreativeFeatureCoordinator.md)
+│       └── [本地创意功能示例](01-device/features/FeatureExamples.md)
+│
+├── [外部系统边界](02-external/README.md)
+│   ├── [龙芯 AI 推理服务器边界](02-external/AIServerBoundary.md)
+│   └── [家属 Electron 应用边界](02-external/FamilyAppBoundary.md)
+│
+├── [关键数据流](03-flows/README.md)
+│   ├── [启动与 Companion](03-flows/StartupAndCompanion.md)
+│   ├── [Remote Voice：KWS → ASR → 推理 → TTS](03-flows/RemoteVoiceFlow.md)
+│   ├── [Remote AI 离线降级](03-flows/OfflineFallbackFlow.md)
+│   ├── [人体 / 手势互动](03-flows/PerceptionGestureFlow.md)
+│   ├── [Reminder / Care](03-flows/ReminderCareFlow.md)
+│   ├── [Family Sync](03-flows/FamilySyncFlow.md)
+│   └── [Emergency 抢占](03-flows/EmergencyFlow.md)
+│
+├── [运行时 / 性能 / 可靠性](04-runtime/README.md)
+│   ├── [线程模型](04-runtime/ThreadModel.md)
+│   ├── [音频流水线](04-runtime/AudioPipeline.md)
+│   ├── [单核性能与推理调度](04-runtime/PerformanceAndInferenceScheduling.md)
+│   ├── [降级与故障恢复](04-runtime/DegradationAndRecovery.md)
+│   ├── [安全与隐私](04-runtime/SecurityAndPrivacy.md)
+│   └── [日志与可观测性](04-runtime/ObservabilityAndLogging.md)
+│
+├── [构建 / 配置 / 部署](05-build/README.md)
+│   ├── [长期源码目录](05-build/ProjectLayout.md)
+│   ├── [CMake 演进](05-build/CMakeStrategy.md)
+│   ├── [运行时配置](05-build/Configuration.md)
+│   ├── [2K0300 部署](05-build/Deployment.md)
+│   └── [测试策略](05-build/TestingStrategy.md)
+│
+└── [版本演进](06-roadmap/README.md)
+    ├── [V0.1 → V1.0 路线](06-roadmap/VersionRoadmap.md)
+    └── [迁移检查清单](06-roadmap/MigrationChecklist.md)
+```
 
-UI Gallery 是开发审核工具，不是面向老人的产品页面。它集中展示十种宠物表情、按钮状态、卡片、提醒项、设置项、Toast、颜色和文字层级。表情卡可以直接点击，只有当前选中的表情启用轻量动画。
+另外提供 [类/文件快速索引](CLASS_INDEX.md)。
 
-## 本地资源
+---
 
-- `resources/styles/app.qss`：集中视觉样式。
-- `resources/icons/`：统一 48×48 本地 SVG 图标。
-- `resources/resources.qrc`：Qt Resource System 入口，运行时只使用 `:/...` 路径。
-- `reference-assets/`：第一阶段的概念参考，不在运行时直接加载。
+## 5. 推荐阅读顺序
 
-## Demo Data
+第一次阅读：
 
-Care、Reminder、Conversation、Settings 和 Engineering 中的文本、数值、网络状态和指标全部为写死的演示数据。工程页始终显示 `DEMO DATA`；本项目不会读取 CPU/RAM、调用网络、保存提醒、联系家人或控制系统设置。
+```text
+README.md
+→ 01-device/README.md
+→ 01-device/app/PetStateMachine.md
+→ 01-device/services/README.md
+→ 02-external/README.md
+→ 03-flows/RemoteVoiceFlow.md
+→ 04-runtime/PerformanceAndInferenceScheduling.md
+→ 06-roadmap/VersionRoadmap.md
+```
 
-## 明确不包含
+开发具体功能时，直接从第四节进入对应类。
 
-AI、ASR、TTS、录音、播放、摄像头、OpenCV、ONNX、网络、天气 API、数据库、提醒调度、通知、联系人、系统音量/亮度/Wi-Fi、GPIO、UART、机器人控制、系统监控及任何生产接口。
+---
+
+## 6. 当前阶段
+
+V0.1 正式工程仍只需要一个很小的骨架：
+
+```text
+main.cpp
+MainWindow
+CompanionPage
+HomePage
+PetFaceWidget
+VisualComponents
+VisualTokens
+QSS / Resources
+```
+
+文档中的其他类不是“现在必须创建的空架构”，而是后续真实功能进入时的明确落点。
