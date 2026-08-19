@@ -19,6 +19,7 @@
 - [ConversationPage](01-device/ui/pages/ConversationPage.md)
 - [CarePage](01-device/ui/pages/CarePage.md)
 - [ReminderPage](01-device/ui/pages/ReminderPage.md)
+- [ReminderAlertPage](01-device/ui/pages/ReminderAlertPage.md)
 - [ReminderEditPage](01-device/ui/pages/ReminderEditPage.md)
 - [SettingsPage](01-device/ui/pages/SettingsPage.md)
 - [EmergencyPage](01-device/ui/pages/EmergencyPage.md)
@@ -77,6 +78,7 @@
 
 ## 关键流程 / 运行时说明
 
+- [Reminder / Care 数据流](03-flows/ReminderCareFlow.md)
 - [视觉自动跟随 → 小车运动](03-flows/AutoFollowMotionFlow.md)
 - [运动安全与控制权](04-runtime/MotionSafetyAndControl.md)
 - [单核性能与推理调度](04-runtime/PerformanceAndInferenceScheduling.md)
